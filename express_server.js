@@ -13,7 +13,8 @@ const generateRandomString = function() {
 
 const urlDatabase = {
   "b2xVn2": "http://www.lighthouselabs.ca",
-  "9sm5xK": "http://www.google.com"
+  "9sm5xK": "http://www.google.com",
+  "6smtxA": "http://www.example.edu"
 };
 
 // homepage
@@ -68,6 +69,13 @@ app.post("/urls", (req, res) => {
   };
   res.redirect(`/urls/${shortURL}`);
   res.send("Ok");         // Respond with 'Ok' (we will replace this)
+});
+
+// Delete the shortURL
+app.post("/urls/:shortURL/delete", (req, res) => {
+  let shortURL = req.params.shortURL;
+  delete urlDatabase[shortURL];
+res.redirect('/urls');
 });
 
 app.listen(PORT, () => {
