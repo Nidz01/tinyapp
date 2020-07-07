@@ -39,25 +39,36 @@ app.get("/urls/new", (req, res) => {
   res.render("urls_new");
 });
 
-//add a new URL taken by the previous get method on /urls/new 
-app.post("/urls", (req, res) => {
-  console.log(req.body);  // Log the POST request body to the console
-  res.send("Ok");         // Respond with 'Ok' (we will replace this)
-});
-
-
 // Route to get new template of shortURL
 app.get("/urls/:shortURL", (req, res) => {
-  let templateVars = { shortURL: req.params.shortURL, longURL: urlDatabase[req.params.shortURL] };
-  console.log(templateVars);
+  let templateVars = { shortURL: req.params.shortURL, longURL: urlDatabase[req.params.shortURL].longURL };
   res.render("urls_show", templateVars);
 });
+
+//Redirect Short URLs
+app.get("/u/:shortURL", (req, res) => {
+  let longURL = urlDatabase[req.params.shortURL];
+  console.log(longURL);
+  res.redirect(longURL);
+});
+
 
 // response containing html code
 app.get("/hello", (req, res) => {
   res.send("<html><body>Hello <b>World</b></body></html>\n");
 });
 
+
+//add a new URL taken by the previous get method on /urls/new 
+app.post("/urls", (req, res) => {
+  // call randomString to generate short URL
+  let shortURL = generateRandomString();
+  urlDatabase[shortURL] = {              // the shortURL-longURL key-value pair are saved to the urlDatabase S
+    longURL: req.body.longURL
+  };
+  res.redirect(`/urls/${shortURL}`);
+  res.send("Ok");         // Respond with 'Ok' (we will replace this)
+});
 
 app.listen(PORT, () => {
   console.log(`Example app listening on port ${PORT}!`);
