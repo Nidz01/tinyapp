@@ -13,18 +13,18 @@ const urlDatabase = {
   "6smtxA": "http://www.example.edu"
 };
 
-const users = {
-  user1RandomID: {
-    id: "user1RandomID",
-    email: "user1@example.com",
-    password: "password01"
+const users = { 
+  "userRandomID": {
+    id: "userRandomID", 
+    email: "user@example.com", 
+    password: "purple-monkey-dinosaur"
   },
-  user2RandomID: {
-    id: "user2RandomID",
-    email: "user2@example.com",
-    password: "testpassword"
+ "user2RandomID": {
+    id: "user2RandomID", 
+    email: "user2@example.com", 
+    password: "dishwasher-funk"
   }
-};
+}
 
 // A function that returns a string of 6 random alphanumeric characters
 const generateRandomString = function() {
@@ -48,7 +48,9 @@ app.get("/", (req, res) => {
 // use res.render to load up an ejs view file
 // urls_index page 
 app.get('/urls', function(req, res) {
-  let templateVars = { username: req.cookies["username"], urls: urlDatabase };
+  let templateVars = { username: users[req.cookies.user_id], urls: urlDatabase };
+  console.log(templateVars);
+  console.log(users);
   res.render('urls_index', templateVars);
 });
 
@@ -60,13 +62,13 @@ app.get("/urls.json", (req, res) => {
 
 // Add a GET Route to Show the Form of adding new URL
 app.get("/urls/new", (req, res) => {
-  let templateVars = { username: req.cookies["username"], urls: urlDatabase };
+  let templateVars = { username: users[req.cookies.user_id], urls: urlDatabase };
   res.render("urls_new", templateVars);
 });
 
 // Route to get new template of shortURL
 app.get("/urls/:shortURL", (req, res) => {
-  let templateVars = { username: req.cookies["username"], shortURL: req.params.shortURL, longURL: urlDatabase[req.params.shortURL].longURL };
+  let templateVars = { username: users[req.cookies.user_id], shortURL: req.params.shortURL, longURL: urlDatabase[req.params.shortURL].longURL };
   res.render("urls_show", templateVars);
 });
 
@@ -77,12 +79,16 @@ app.get("/u/:shortURL", (req, res) => {
   res.redirect(longURL);
 });
 
-
-// response containing html code
-app.get("/hello", (req, res) => {
-  res.send("<html><body>Hello <b>World</b></body></html>\n");
+app.get("/register", (req, res) => {
+  let templateVars = { username: users[req.cookies.user_id]};
+  res.render("register", templateVars);
 });
 
+// login page
+app.get("/login", (req, res) => {
+  let templateVars = { username: users[req.cookies.user_id]};
+  res.render("login", templateVars);
+});
 
 //add a new URL taken by the previous get method on /urls/new 
 app.post("/urls", (req, res) => {
@@ -92,12 +98,6 @@ app.post("/urls", (req, res) => {
     longURL: req.body.longURL
   };
   res.redirect(`/urls/${shortURL}`);
-  res.send("Ok");         // Respond with 'Ok' (we will replace this)
-});
-
-app.get("/register", (req, res) => {
-  let templateVars = { username: undefined};
-  res.render("register", templateVars);
 });
 
 // Delete the shortURL
@@ -106,14 +106,36 @@ app.post("/urls/:shortURL/delete", (req, res) => {
   delete urlDatabase[shortURL];
   res.redirect('/urls');
 });
+// Register a new user
+app.post("/register", (req, res) => {
+  if (req.body.email === "" || req.body.password === "") {
+    res.status(400).send("Please enter email AND password to proceed.");
+    res.redirect("/register");
+  }
+  if (getUserByEmail(req.body.email, users)) {
+    res.status(400).send("Please enter a unique email.");
+    res.redirect("/urls");
+  }
+  let id = generateRandomString();
+  users[id] = {
+    id: id,
+    email: req.body.email,
+    password: req.body.password
+  };
+  req.cookies["user_id"] = id;
+  res.redirect("/urls/");
+});
 
+// Login a User
 app.post("/login", (req, res) => {
-  res.cookie('username', req.body.username);
+  let foundUser = getUserByEmail(req.body.email, users);
+  res.cookie("user_id" , foundUser.id);
   res.redirect('/urls'); 
 });
 
+// Logout a user and clear cookie
 app.post("/logout", (req, res) => {
-  res.clearCookie('username', req.cookies["username"]);
+  res.clearCookie("user_id", req.cookies["user_id"]);
   res.redirect('/urls'); 
 });
 
