@@ -31,14 +31,28 @@ const generateRandomString = function() {
   return Math.random().toString(36).substr(2,8);
 };
 
-const getUserByEmail = function(email, database) {
+const getUserByEmail = function(email) {
   for (let user in users) {
-    if (database[user].email === email) {
-      return database[user];
+    if (users[user].email === email) {
+      return users[user];
     }
   }
   return false;
 };
+
+// Check for correct login credential
+const authenticateUser = (email, password) => {
+  // Does the user with that email exist?
+  const user = getUserByEmail(email);
+
+  // check the email and passord match
+  if (user && user.password === password) {
+    return user.id;
+  } else {
+    return false;
+  }
+};
+
 
 // homepage
 app.get("/", (req, res) => {
@@ -128,9 +142,13 @@ app.post("/register", (req, res) => {
 
 // Login a User
 app.post("/login", (req, res) => {
-  let foundUser = getUserByEmail(req.body.email, users);
-  res.cookie("user_id" , foundUser.id);
+  const userId = authenticateUser(req.body.email, req.body.password);
+  if(userId) {
+    res.cookie("user_id" , userId);
   res.redirect('/urls'); 
+  } else {
+    res.status(403).send("Incorrect username or password");
+  }
 });
 
 // Logout a user and clear cookie

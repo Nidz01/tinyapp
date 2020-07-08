@@ -19,7 +19,7 @@
       <% } else { %>
         <div class="navbar-nav">
           <a style="margin-left:2.5em;">Logged in As: <%= username.email%></a>
-          <a class="nav-item nav-link"> <button type="submit" class="btn btn-primary" >Logout</button></a> 
+          <form class="nav-item nav-link" action= "/logout" method= "POST"><button type="submit" class="btn btn-primary" >Logout</button></form> 
         </div>
       <% } %>
   </nav>
