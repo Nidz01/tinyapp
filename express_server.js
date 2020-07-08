@@ -76,8 +76,13 @@ app.get("/urls.json", (req, res) => {
 
 // Add a GET Route to Show the Form of adding new URL
 app.get("/urls/new", (req, res) => {
-  let templateVars = { username: users[req.cookies.user_id], urls: urlDatabase };
-  res.render("urls_new", templateVars);
+  let templateVars = { username: "", urls: urlDatabase };
+  if(req.cookies.user_id) {
+    templateVars.username = users[req.cookies.user_id]
+    res.render("urls_new", templateVars);
+  } else {
+    res.redirect("/login");
+  }
 });
 
 // Route to get new template of shortURL
