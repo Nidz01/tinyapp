@@ -1,6 +1,7 @@
 const express = require("express");
 const app = express();
-const cookieParser = require('cookie-parser')
+const cookieParser = require('cookie-parser');
+app.use(cookieParser());
 const PORT = 8080; // default port 8080
 app.set("view engine", "ejs"); //Setting ejs as the view engine.
 const bodyParser = require("body-parser");
@@ -26,7 +27,8 @@ app.get("/", (req, res) => {
 // use res.render to load up an ejs view file
 // urls_index page 
 app.get('/urls', function(req, res) {
-  let templateVars = { urls: urlDatabase };
+  let templateVars = { username: req.cookies["username"], urls: urlDatabase };
+  console.log(templateVars);
   res.render('urls_index', templateVars);
 });
 
@@ -38,12 +40,13 @@ app.get("/urls.json", (req, res) => {
 
 // Add a GET Route to Show the Form of adding new URL
 app.get("/urls/new", (req, res) => {
-  res.render("urls_new");
+  let templateVars = { username: req.cookies["username"], urls: urlDatabase };
+  res.render("urls_new", templateVars);
 });
 
 // Route to get new template of shortURL
 app.get("/urls/:shortURL", (req, res) => {
-  let templateVars = { shortURL: req.params.shortURL, longURL: urlDatabase[req.params.shortURL].longURL };
+  let templateVars = { username: req.cookies["username"], shortURL: req.params.shortURL, longURL: urlDatabase[req.params.shortURL].longURL };
   res.render("urls_show", templateVars);
 });
 
@@ -76,7 +79,7 @@ app.post("/urls", (req, res) => {
 app.post("/urls/:shortURL/delete", (req, res) => {
   let shortURL = req.params.shortURL;
   delete urlDatabase[shortURL];
-res.redirect('/urls');
+  res.redirect('/urls');
 });
 
 app.post("/login", (req, res) => {
