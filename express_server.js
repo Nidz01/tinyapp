@@ -53,6 +53,15 @@ const authenticateUser = (email, password) => {
   }
 };
 
+const urlsForUser = (data, id) => {
+  const results = {};
+  for (let [key, value] of Object.entries(data)) {
+    if (value["userID"] === id) {
+      results[key] = value["longURL"];
+    }
+  }
+  return results;
+};
 
 // homepage
 app.get("/", (req, res) => {
@@ -62,9 +71,12 @@ app.get("/", (req, res) => {
 // use res.render to load up an ejs view file
 // urls_index page 
 app.get('/urls', function(req, res) {
-  let templateVars = { username: users[req.cookies.user_id], urls: urlDatabase };
-  console.log(users);
-  res.render('urls_index', templateVars);
+  if(req.cookies.user_id){
+    let templateVars = { username: users[req.cookies.user_id], urls: urlsForUser(urlDatabase, req.cookies.user_id) };
+    res.render('urls_index', templateVars);
+  } else {
+    res.send('You need to <a href="/login">log in</a> to see your shortened URLs.');
+  }
 });
 
 
@@ -103,9 +115,9 @@ app.get("/register", (req, res) => {
 
 // login page
 app.get("/login", (req, res) => {
-  let templateVars = { username: users[req.cookies.user_id]};
-  res.render("login", templateVars);
-});
+  let templateVars = { username: undefined};
+    res.render("login", templateVars);
+  });
 
 //add a new URL taken by the previous get method on /urls/new 
 app.post("/urls", (req, res) => {
@@ -113,16 +125,21 @@ app.post("/urls", (req, res) => {
   let shortURL = generateRandomString();
   urlDatabase[shortURL] = {              // the shortURL-longURL key-value pair are saved to the urlDatabase S
     longURL: req.body.longURL,
-    userID: req.session["user_id"]
+    userID: req.cookies.user_id
   };
   res.redirect(`/urls/${shortURL}`);
 });
 
 // Delete the shortURL
 app.post("/urls/:shortURL/delete", (req, res) => {
+  let userLinks = urlsForUser(urlDatabase, req.cookies.user_id);
   let shortURL = req.params.shortURL;
+  if (userLinks[shortURL]) {
   delete urlDatabase[shortURL];
   res.redirect('/urls');
+} else {
+  res.send("You are not authorized to delete this.");
+}
 });
 // Register a new user
 app.post("/register", (req, res) => {
