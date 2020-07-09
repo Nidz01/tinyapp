@@ -1,7 +1,20 @@
+//================================== MODULES ===========================================//
 const express = require("express");
 const app = express();
 const bcrypt = require("bcrypt");
+const bodyParser = require("body-parser"); //Converts request body from buffer state to readable string
 const cookieSession = require("cookie-session");
+const {
+  generateRandomString,
+  getUserByEmail,
+  authenticateUser,
+  urlsForUser
+} = require('./helpers'); //All helper functions are imported from our other js file.
+
+//================================== MIDDLEWARE ===========================================//
+
+app.set("view engine", "ejs"); //Setting ejs as the view engine.
+app.use(bodyParser.urlencoded({extended: true})); 
 app.use(
   cookieSession({
     name: "session",
@@ -16,10 +29,8 @@ app.use((req, res, next) => {
 
 //const cookieParser = require('cookie-parser');
 //app.use(cookieParser());
-const PORT = process.env.PORT || 3001; 
-app.set("view engine", "ejs"); //Setting ejs as the view engine.
-const bodyParser = require("body-parser");
-app.use(bodyParser.urlencoded({extended: true})); //The body-parser library will convert the request body from a Buffer into string that we can read. It will then add the data to the req(request) object under the key body. 
+
+//================================== DATABASE ===========================================//
 
 const urlDatabase = {
   "b2xVn2": { longURL: "http://www.lighthouselabs.ca", userID: "userRandomID"},
@@ -37,59 +48,35 @@ const users = {
     id: "user2RandomID", 
     email: "user2@example.com", 
     password: bcrypt.hashSync("password2", 10)
+  },
+  "user3RandomID": {
+    id: "user3RandomID", 
+    email: "user3@example.com", 
+    password: bcrypt.hashSync("password3", 10)
   }
 }
 
-// A function that returns a string of 6 random alphanumeric characters
-const generateRandomString = function() {
-  return Math.random().toString(36).substr(2,8);
-};
+const PORT = process.env.PORT || 3001; 
 
-const getUserByEmail = function(email) {
-  for (let user in users) {
-    if (users[user].email === email) {
-      return users[user];
-    }
-  }
-  return false;
-};
-
-// Check for correct login credential
-const authenticateUser = (email, password) => {
-  // Does the user with that email exist?
-  const user = getUserByEmail(email);
-
-  // check the email and passord match
-  if (user && bcrypt.compareSync(user.password === password)) {
-    return user.id;
-  } else {
-    return false;
-  }
-};
-
-const urlsForUser = (data, id) => {
-  const results = {};
-  for (let [key, value] of Object.entries(data)) {
-    if (value["userID"] === id) {
-      results[key] = value["longURL"];
-    }
-  }
-  return results;
-};
+//================================== GET METHODS ===========================================//
 
 // homepage
 app.get("/", (req, res) => {
-  res.json(users);
+  res.json({users, urlDatabase});
 });
 
 // use res.render to load up an ejs view file
 // urls_index page 
 app.get('/urls', function(req, res) {
   if(req.session.user_id){
-    let templateVars = { username: req.currentUser, urls: urlsForUser(urlDatabase, req.session.user_id) };
+    let templateVars = {
+      username: req.currentUser, 
+      urls: urlsForUser(req.session.user_id) 
+    };
+    console.log(templateVars);
     res.render('urls_index', templateVars);
   } else {
-    res.send('You need to <a href="/login">log in</a> to see your shortened URLs.');
+    res.send('You need to <a href="/login">log in</a> to see your shortened URLs.<br> If you do not have an account, you can <a href="/register">Register here.');
   }
 });
 
@@ -106,7 +93,7 @@ app.get("/urls/new", (req, res) => {
     templateVars.username = req.currentUser;
     res.render("urls_new", templateVars);
   } else {
-    res.redirect("/login");
+    res.send('You need to <a href="/login">LogIn</a> to create new URL.<br> If you do not have an account, you can <a href="/register">Register here.</a>');
   }
 });
 
@@ -133,7 +120,9 @@ app.get("/login", (req, res) => {
     res.render("login", templateVars);
   });
 
-//add a new URL taken by the previous get method on /urls/new 
+//================================== POST METHODS ===========================================//
+
+//Add a new URL taken by the previous get method on /urls/new 
 app.post("/urls", (req, res) => {
   // call randomString to generate short URL
   let shortURL = generateRandomString();
@@ -144,24 +133,29 @@ app.post("/urls", (req, res) => {
   res.redirect(`/urls/${shortURL}`);
 });
 
-// Edit URL and redirects to /urls page, if logged in user owns the URL.
-// Otherwise simply redirects to same url page with a message (if user is not owner of URL)
+// Edit URL and redirects to /urls page, if user is logged in.
+// Otherwise simply redirects to same login page with a message (if user is not logged in)
 app.post("/urls/:id", (req, res) => {
-  const id = req.params.id;
-  urlDatabase[id].longURL = req.body.longURL;
+  let userLinks = urlsForUser(req.session.user_id);
+  if(userLinks) {
+    urlDatabase[req.params.id].longURL = req.body.longURL;
   res.redirect("/urls");
+  } else {
+    res.send("You are not authorized to edit this. Please <a href='/login'>Login first. <br> If you do not have an account, you can <a href='/register'>Register here.</a>");
+  }
 });
 
 // Delete the shortURL then redirects to url page(if owner of URL) 
 // Otherwise simply redirects to same url page with a message (if user is not owner of URL)
 app.post("/urls/:shortURL/delete", (req, res) => {
-  let userLinks = urlsForUser(urlDatabase, req.session.user_id);
+  let userLinks = urlsForUser(req.session.user_id);
+  console.log(userLinks);
   let shortURL = req.params.shortURL;
   if (userLinks[shortURL]) {
     delete urlDatabase[shortURL];
     res.redirect('/urls');
   } else {
-    res.send("You are not authorized to delete this.  <a href='/urls'>Back to Previous Page</a>");
+    res.send("You are not authorized to delete this.  <a href='/urls'>Back to Previous Page.<br> If you do not have an account, you can <a href='/register'>Register here.</a>");
   }
 });
 // Register a new user with unique email and assign a unique user_id
