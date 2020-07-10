@@ -88,40 +88,54 @@ app.get("/urls/new", (req, res) => {
   }
 });
 
-// Page That Thows URLs Of Logged-In User With URL Edit Option.
-app.get("/urls/:shortURL", (req, res) => {
-  let templateVars = { username: req.currentUser, shortURL: req.params.shortURL, longURL: urlDatabase[req.params.shortURL].longURL };
+// Page That Shows URLs Of Logged-In User With URL Edit Option.
+app.get("/urls/:id", (req, res) => {
+  let templateVars = { username: req.currentUser, shortURL: req.params.id, longURL: urlDatabase[req.params.id].longURL };
   res.render("urls_show", templateVars);
 });
 
 // When User Clicks On ShortURL, It Redirects To The LongURL Website
-app.get("/urls/:shortURL", (req, res) => {
-  let longURL = urlDatabase[req.params.shortURL].longURL;
+app.get("/u/:id", (req, res) => {
+  let longURL = urlDatabase[req.params.id].longURL;
   res.redirect(longURL);
 });
 
 // Page For New User Registration
 app.get("/register", (req, res) => {
-  let templateVars = { username: req.currentUser};
+  let templateVars = { username: undefined, urls: urlDatabase };
+  if (req.session.userId) {
+    templateVars.username = req.currentUser;
+    res.redirect("/urls");
+  } else {
   res.render("register", templateVars);
+  }
 });
 
 // Page to Log In
 app.get("/login", (req, res) => {
-  let templateVars = { username: undefined};
-  res.render("login", templateVars);
+  let templateVars = { username: undefined, urls: urlDatabase };
+  if (req.session.userId) {
+    templateVars.username = req.currentUser;
+    res.redirect("/urls");
+  } else {
+    res.render("login", templateVars);
+  }
 });
 
 //================================== POST METHODS ===========================================//
 
 //Create a New URL
-app.post("/urls/new", (req, res) => {
-  let shortURL = generateRandomString(); // call randomString to generate short URL
-  urlDatabase[shortURL] = {              // the shortURL-longURL key-value pair are saved to the urlDatabase S
-    longURL: req.body.longURL,
-    userID: req.session.userId
-  };
-  res.redirect(`/urls/${shortURL}`);
+app.post("/urls", (req, res) => {
+  if (req.session.userId) {
+    let shortURL = generateRandomString(); // call randomString to generate short URL
+    urlDatabase[shortURL] = {              // the shortURL-longURL key-value pair are saved to the urlDatabase S
+      longURL: req.body.longURL,
+      userID: req.session.userId
+    };
+    res.redirect(`/urls/${shortURL}`);
+  } else {
+    res.send('You need to <a href="/login">LogIn</a> to create new URL.<br> If you do not have an account, you can <a href="/register">Register here.</a>');
+  }
 });
 
 // Edit URL and redirects to /urls page, if user is logged in.
@@ -138,11 +152,11 @@ app.post("/urls/:id", (req, res) => {
 
 // Delete the shortURL then redirects to url page(if owner of URL)
 // Otherwise simply redirects to same url page with a message (if user is not owner of URL)
-app.post("/urls/:shortURL/delete", (req, res) => {
+app.post("/urls/:id/delete", (req, res) => {
   let userLinks = urlsForUser(urlDatabase,req.session.userId);
-  let shortURL = req.params.shortURL;
-  if (userLinks[shortURL]) {
-    delete urlDatabase[shortURL];
+  let id = req.params.id;
+  if (userLinks[id]) {
+    delete urlDatabase[id];
     res.redirect('/urls');
   } else {
     res.send("You are not authorized to delete this.  <a href='/urls'>Back to Previous Page.<br> If you do not have an account, you can <a href='/register'>Register here.</a>");
