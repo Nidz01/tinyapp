@@ -90,12 +90,16 @@ app.get("/urls/new", (req, res) => {
 
 // Page That Shows URLs Of Logged-In User With URL Edit Option.
 app.get("/urls/:id", (req, res) => {
-  let templateVars = { username: "", shortURL: req.params.id, longURL: urlDatabase[req.params.id].longURL };
+  let templateVars = { username: "", shortURL: "", longURL: "" };
   if (req.session.userId) {
     templateVars.username = req.currentUser;
-  res.render("urls_show", templateVars);
-  } else {
-    res.send('You need to <a href="/login">log in</a> to see your shortened URLs.<br> If you do not have an account, you can <a href="/register">Register here.');
+    if (req.session.userId === (urlDatabase[req.params.id].userID)) {
+      templateVars.shortURL = req.params.id;
+      templateVars.longURL = urlDatabase[req.params.id].longURL;
+      res.render("urls_show", templateVars);
+    } else {
+      res.redirect("/urls");
+    } res.send('You need to <a href="/login">log in</a> to see your shortened URLs.<br> If you do not have an account, you can <a href="/register">Register here.');
   }
 });
 
@@ -211,6 +215,3 @@ app.post("/logout", (req, res) => {
 app.listen(PORT, () => {
   console.log(`Example app listening on port ${PORT}!`);
 });
-
-
-
