@@ -90,8 +90,13 @@ app.get("/urls/new", (req, res) => {
 
 // Page That Shows URLs Of Logged-In User With URL Edit Option.
 app.get("/urls/:id", (req, res) => {
-  let templateVars = { username: req.currentUser, shortURL: req.params.id, longURL: urlDatabase[req.params.id].longURL };
+  let templateVars = { username: "", shortURL: req.params.id, longURL: urlDatabase[req.params.id].longURL };
+  if (req.session.userId) {
+    templateVars.username = req.currentUser;
   res.render("urls_show", templateVars);
+  } else {
+    res.send('You need to <a href="/login">log in</a> to see your shortened URLs.<br> If you do not have an account, you can <a href="/register">Register here.');
+  }
 });
 
 // When User Clicks On ShortURL, It Redirects To The LongURL Website
