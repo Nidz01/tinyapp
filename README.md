@@ -25,6 +25,13 @@ Here is a glimpse of this TinnyApp application.
 - cookie-session
 - bootstrap
 
+## Technology Stack for tinyApp Project
+
+- Web Server: Node.js
+- Middleware: Express
+- Template Engine: EJS
+- Database: None, just an "In-Memory Object"
+
 ## Getting Started
 
 - The package.json is already there with the correct dependancies.
